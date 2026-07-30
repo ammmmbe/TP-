@@ -271,11 +271,3 @@ btn.MouseButton1Click:Connect(function()
         end
     end
 end)
-
--- ============================================
--- AUTO-EXECUTE ON REJOIN / TELEPORT (XENO)
--- Replace the URL with your own raw script URL
--- ============================================
-if queue_on_teleport ~= nil then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/ammmmbe/TP-/refs/heads/main/DQ"))()')
-end
