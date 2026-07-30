@@ -1,3 +1,23 @@
+-- ============================================
+-- AUTO-EXECUTE ON REJOIN / TELEPORT (XENO)
+-- ============================================
+if queue_on_teleport then
+    queue_on_teleport([[
+        task.spawn(function()
+            task.wait(2)  -- wait 2 seconds before re-executing
+            local ok, err = pcall(function()
+                local src = game:HttpGet("https://raw.githubusercontent.com/ammmmbe/TP-/refs/heads/main/DQ")
+                local fn = loadstring(src)
+                if fn then fn() end
+            end)
+            if not ok then
+                warn("Queued script failed:", err)
+            end
+        end)
+    ]])
+end
+
+
 -- File name for saving configuration data
 local configFileName = "AutoTP_Config.json"
 local httpService = game:GetService("HttpService")
@@ -140,7 +160,8 @@ incCorner.Parent = incBtn
 -- Variables Setup from Loaded Config
 local currentTarget = nil
 local cooldownActive = false
-local cooldownTime = 3.3  -- 3.3 seconds cooldown
+local cooldownTime = 4  -- changed from 3.3 to 4 seconds
+local cooldownPosition = nil  -- store position during cooldown
 
 
 local players = game:GetService("Players")
@@ -226,14 +247,13 @@ btn.MouseButton1Click:Connect(function()
         btn.TextColor3 = Color3.fromRGB(255, 60, 60)
         currentTarget = nil
         cooldownActive = false
+        cooldownPosition = nil
     end
 end)
 
 
 -- Continuous loop running every frame
 runService.Heartbeat:Connect(function()
-    if not config.active or cooldownActive then return end
-    
     local char = localPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local root = char.HumanoidRootPart
@@ -242,18 +262,37 @@ runService.Heartbeat:Connect(function()
     if humanoid then
         humanoid.AutoRotate = false
     end
+
+    -- During cooldown: keep floating at the same position
+    if cooldownActive then
+        if cooldownPosition and char and char:FindFirstChild("HumanoidRootPart") then
+            root.CFrame = CFrame.new(cooldownPosition)
+            root.AssemblyLinearVelocity = Vector3.zero
+            if humanoid then
+                humanoid.PlatformStand = true
+            end
+        end
+        return
+    end
+
+    if not config.active then return end
     
     if currentTarget then
         local tHumanoid = currentTarget:FindFirstChildOfClass("Humanoid")
         if not currentTarget.Parent or not currentTarget:FindFirstChild("HumanoidRootPart") or (tHumanoid and tHumanoid.Health <= 0) then
+            -- Store current floating position before starting cooldown
+            cooldownPosition = root.Position
             currentTarget = nil
             cooldownActive = true
             
-            if humanoid then humanoid.AutoRotate = true end
+            if humanoid then 
+                humanoid.AutoRotate = true
+                humanoid.PlatformStand = false
+            end
             
             task.spawn(function()
                 local timeLeft = cooldownTime
-                while timeLeft > 0 and config.active do
+                while timeLeft > 0 and config.active and cooldownActive do
                     btn.Text = "Cooldown: " .. string.format("%.1f", timeLeft) .. "s"
                     btn.TextColor3 = Color3.fromRGB(255, 165, 0)
                     task.wait(0.1)
@@ -261,6 +300,10 @@ runService.Heartbeat:Connect(function()
                 end
                 
                 cooldownActive = false
+                cooldownPosition = nil
+                if humanoid then
+                    humanoid.PlatformStand = false
+                end
                 if config.active then
                     btn.Text = "Auto TP: ON"
                     btn.TextColor3 = Color3.fromRGB(60, 255, 60)
@@ -287,13 +330,14 @@ runService.Heartbeat:Connect(function()
 end)
 
 
--- Clean up and reset AutoRotate if script loop ends or is toggled off
+-- Clean up and reset AutoRotate if toggled off
 btn.MouseButton1Click:Connect(function()
     if not config.active then
         local char = localPlayer.Character
         local humanoid = char and char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.AutoRotate = true
+            humanoid.PlatformStand = false
         end
     end
 end)
