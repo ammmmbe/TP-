@@ -1,0 +1,299 @@
+-- File name for saving configuration data
+local configFileName = "AutoTP_Config.json"
+local httpService = game:GetService("HttpService")
+
+
+-- Default Configuration settings
+local config = {
+    active = true, -- Automatically executes and turns ON by default
+    heightOffset = 15
+}
+
+
+-- Load configuration settings if file exists
+if readfile and isfile and isfile(configFileName) then
+    local success, decoded = pcall(function()
+        return httpService:JSONDecode(readfile(configFileName))
+    end)
+    if success and type(decoded) == "table" then
+        config = decoded
+    end
+end
+
+
+-- Save configuration settings function
+local function saveConfig()
+    if writefile then
+        pcall(function()
+            writefile(configFileName, httpService:JSONEncode(config))
+        end)
+    end
+end
+
+
+-- Create ScreenGui
+local sg = Instance.new("ScreenGui")
+sg.Name = "AutoTPGui"
+sg.ResetOnSpawn = false
+
+
+-- Fallback safety for exploit executors
+local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
+if success and coreGui then
+    sg.Parent = coreGui
+else
+    sg.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+
+-- Main Frame to hold UI elements
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 180, 0, 120)
+mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = sg
+
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = mainFrame
+
+
+-- UI Layout Padding
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+layout.Parent = mainFrame
+
+
+-- Create Toggle Button
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 160, 0, 40)
+btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+btn.TextSize = 15
+btn.Font = Enum.Font.SourceSansBold
+btn.BorderSizePixel = 0
+btn.Parent = mainFrame
+
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = btn
+
+
+-- Distance Control Frame
+local distFrame = Instance.new("Frame")
+distFrame.Size = UDim2.new(0, 160, 0, 45)
+distFrame.BackgroundTransparency = 1
+distFrame.Parent = mainFrame
+
+
+-- Distance Label
+local distLabel = Instance.new("TextLabel")
+distLabel.Size = UDim2.new(1, 0, 0, 20)
+distLabel.Position = UDim2.new(0, 0, 0, 0)
+distLabel.BackgroundTransparency = 1
+distLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+distLabel.TextSize = 13
+distLabel.Font = Enum.Font.SourceSansBold
+distLabel.Parent = distFrame
+
+
+-- Decrease Distance Button
+local decBtn = Instance.new("TextButton")
+decBtn.Size = UDim2.new(0, 35, 0, 22)
+decBtn.Position = UDim2.new(0, 5, 0, 20)
+decBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+decBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+decBtn.TextSize = 14
+decBtn.Font = Enum.Font.SourceSansBold
+decBtn.Text = "-"
+decBtn.BorderSizePixel = 0
+decBtn.Parent = distFrame
+
+
+local decCorner = Instance.new("UICorner")
+decCorner.CornerRadius = UDim.new(0, 4)
+decCorner.Parent = decBtn
+
+
+-- Increase Distance Button
+local incBtn = Instance.new("TextButton")
+incBtn.Size = UDim2.new(0, 35, 0, 22)
+incBtn.Position = UDim2.new(1, -40, 0, 20)
+incBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+incBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+incBtn.TextSize = 14
+incBtn.Font = Enum.Font.SourceSansBold
+incBtn.Text = "+"
+incBtn.BorderSizePixel = 0
+incBtn.Parent = distFrame
+
+
+local incCorner = Instance.new("UICorner")
+incCorner.CornerRadius = UDim.new(0, 4)
+incCorner.Parent = incBtn
+
+
+-- Variables Setup from Loaded Config
+local currentTarget = nil
+local cooldownActive = false
+local cooldownTime = 3.3  -- Changed from 2 to 3.3 seconds
+
+
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
+local localPlayer = players.LocalPlayer
+
+
+-- Set Initial UI Elements based on Loaded Config
+distLabel.Text = "Distance: " .. config.heightOffset .. " studs"
+if config.active then
+    btn.Text = "Auto TP: ON"
+    btn.TextColor3 = Color3.fromRGB(60, 255, 60)
+else
+    btn.Text = "Auto TP: OFF"
+    btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+end
+
+
+-- Distance adjusting logic
+decBtn.MouseButton1Click:Connect(function()
+    config.heightOffset = math.max(2, config.heightOffset - 1)
+    distLabel.Text = "Distance: " .. config.heightOffset .. " studs"
+    saveConfig()
+end)
+
+
+incBtn.MouseButton1Click:Connect(function()
+    config.heightOffset = math.min(100, config.heightOffset + 1)
+    distLabel.Text = "Distance: " .. config.heightOffset .. " studs"
+    saveConfig()
+end)
+
+
+-- Check if a model is a valid target
+local function isValidTarget(obj)
+    if not obj:IsA("Model") then return false end
+    if players:GetPlayerFromCharacter(obj) then return false end
+    if obj == localPlayer.Character then return false end
+    
+    local humanoid = obj:FindFirstChildOfClass("Humanoid")
+    local rootPart = obj:FindFirstChild("HumanoidRootPart")
+    
+    if humanoid and rootPart and humanoid.Health > 0 then
+        return true
+    end
+    return false
+end
+
+
+-- Find nearest valid NPC or Boss
+local function getNearestTarget()
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    local root = char.HumanoidRootPart
+    
+    local closest = nil
+    local maxDist = math.huge
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isValidTarget(obj) then
+            local tRoot = obj.HumanoidRootPart
+            local dist = (root.Position - tRoot.Position).Magnitude
+            if dist < maxDist then
+                maxDist = dist
+                closest = obj
+            end
+        end
+    end
+    return closest
+end
+
+
+-- Toggle click event
+btn.MouseButton1Click:Connect(function()
+    config.active = not config.active
+    saveConfig()
+    
+    if config.active then
+        btn.Text = "Auto TP: ON"
+        btn.TextColor3 = Color3.fromRGB(60, 255, 60)
+    else
+        btn.Text = "Auto TP: OFF"
+        btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+        currentTarget = nil
+        cooldownActive = false
+    end
+end)
+
+
+-- Continuous loop running every frame
+runService.Heartbeat:Connect(function()
+    if not config.active or cooldownActive then return end
+    
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        humanoid.AutoRotate = false
+    end
+    
+    if currentTarget then
+        local tHumanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+        if not currentTarget.Parent or not currentTarget:FindFirstChild("HumanoidRootPart") or (tHumanoid and tHumanoid.Health <= 0) then
+            currentTarget = nil
+            cooldownActive = true
+            
+            if humanoid then humanoid.AutoRotate = true end
+            
+            task.spawn(function()
+                local timeLeft = cooldownTime
+                while timeLeft > 0 and config.active do
+                    btn.Text = "Cooldown: " .. string.format("%.1f", timeLeft) .. "s"
+                    btn.TextColor3 = Color3.fromRGB(255, 165, 0)
+                    task.wait(0.1)  -- Smaller steps for smoother countdown
+                    timeLeft = timeLeft - 0.1
+                end
+                
+                cooldownActive = false
+                if config.active then
+                    btn.Text = "Auto TP: ON"
+                    btn.TextColor3 = Color3.fromRGB(60, 255, 60)
+                else
+                    btn.Text = "Auto TP: OFF"
+                    btn.TextColor3 = Color3.fromRGB(255, 60, 60)
+                end
+            end)
+            return
+        end
+    end
+    
+    if not currentTarget then
+        currentTarget = getNearestTarget()
+    end
+    
+    if currentTarget and currentTarget:FindFirstChild("HumanoidRootPart") then
+        local tRoot = currentTarget.HumanoidRootPart
+        local desiredPosition = tRoot.Position + Vector3.new(0, config.heightOffset, 0)
+        
+        root.CFrame = CFrame.lookAt(desiredPosition, tRoot.Position)
+        root.AssemblyLinearVelocity = Vector3.zero
+    end
+end)
+
+
+-- Clean up and reset AutoRotate if script loop ends or is toggled off
+btn.MouseButton1Click:Connect(function()
+    if not config.active then
+        local char = localPlayer.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.AutoRotate = true
+        end
+    end
+end)
