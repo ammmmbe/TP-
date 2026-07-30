@@ -2,13 +2,11 @@
 local configFileName = "AutoTP_Config.json"
 local httpService = game:GetService("HttpService")
 
-
 -- Default Configuration settings
 local config = {
     active = true, -- Automatically executes and turns ON by default
     heightOffset = 15
 }
-
 
 -- Load configuration settings if file exists
 if readfile and isfile and isfile(configFileName) then
@@ -20,7 +18,6 @@ if readfile and isfile and isfile(configFileName) then
     end
 end
 
-
 -- Save configuration settings function
 local function saveConfig()
     if writefile then
@@ -30,12 +27,10 @@ local function saveConfig()
     end
 end
 
-
 -- Create ScreenGui
 local sg = Instance.new("ScreenGui")
 sg.Name = "AutoTPGui"
 sg.ResetOnSpawn = false
-
 
 -- Fallback safety for exploit executors
 local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
@@ -45,7 +40,6 @@ else
     sg.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 end
 
-
 -- Main Frame to hold UI elements
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 180, 0, 120)
@@ -54,11 +48,9 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = sg
 
-
 local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 8)
 frameCorner.Parent = mainFrame
-
 
 -- UI Layout Padding
 local layout = Instance.new("UIListLayout")
@@ -66,7 +58,6 @@ layout.Padding = UDim.new(0, 6)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
 layout.Parent = mainFrame
-
 
 -- Create Toggle Button
 local btn = Instance.new("TextButton")
@@ -77,18 +68,15 @@ btn.Font = Enum.Font.SourceSansBold
 btn.BorderSizePixel = 0
 btn.Parent = mainFrame
 
-
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 6)
 btnCorner.Parent = btn
-
 
 -- Distance Control Frame
 local distFrame = Instance.new("Frame")
 distFrame.Size = UDim2.new(0, 160, 0, 45)
 distFrame.BackgroundTransparency = 1
 distFrame.Parent = mainFrame
-
 
 -- Distance Label
 local distLabel = Instance.new("TextLabel")
@@ -99,7 +87,6 @@ distLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
 distLabel.TextSize = 13
 distLabel.Font = Enum.Font.SourceSansBold
 distLabel.Parent = distFrame
-
 
 -- Decrease Distance Button
 local decBtn = Instance.new("TextButton")
@@ -113,11 +100,9 @@ decBtn.Text = "-"
 decBtn.BorderSizePixel = 0
 decBtn.Parent = distFrame
 
-
 local decCorner = Instance.new("UICorner")
 decCorner.CornerRadius = UDim.new(0, 4)
 decCorner.Parent = decBtn
-
 
 -- Increase Distance Button
 local incBtn = Instance.new("TextButton")
@@ -131,22 +116,18 @@ incBtn.Text = "+"
 incBtn.BorderSizePixel = 0
 incBtn.Parent = distFrame
 
-
 local incCorner = Instance.new("UICorner")
 incCorner.CornerRadius = UDim.new(0, 4)
 incCorner.Parent = incBtn
-
 
 -- Variables Setup from Loaded Config
 local currentTarget = nil
 local cooldownActive = false
 local cooldownTime = 3.3  -- Changed from 2 to 3.3 seconds
 
-
 local players = game:GetService("Players")
 local runService = game:GetService("RunService")
 local localPlayer = players.LocalPlayer
-
 
 -- Set Initial UI Elements based on Loaded Config
 distLabel.Text = "Distance: " .. config.heightOffset .. " studs"
@@ -158,7 +139,6 @@ else
     btn.TextColor3 = Color3.fromRGB(255, 60, 60)
 end
 
-
 -- Distance adjusting logic
 decBtn.MouseButton1Click:Connect(function()
     config.heightOffset = math.max(2, config.heightOffset - 1)
@@ -166,13 +146,11 @@ decBtn.MouseButton1Click:Connect(function()
     saveConfig()
 end)
 
-
 incBtn.MouseButton1Click:Connect(function()
     config.heightOffset = math.min(100, config.heightOffset + 1)
     distLabel.Text = "Distance: " .. config.heightOffset .. " studs"
     saveConfig()
 end)
-
 
 -- Check if a model is a valid target
 local function isValidTarget(obj)
@@ -188,7 +166,6 @@ local function isValidTarget(obj)
     end
     return false
 end
-
 
 -- Find nearest valid NPC or Boss
 local function getNearestTarget()
@@ -212,7 +189,6 @@ local function getNearestTarget()
     return closest
 end
 
-
 -- Toggle click event
 btn.MouseButton1Click:Connect(function()
     config.active = not config.active
@@ -228,7 +204,6 @@ btn.MouseButton1Click:Connect(function()
         cooldownActive = false
     end
 end)
-
 
 -- Continuous loop running every frame
 runService.Heartbeat:Connect(function()
@@ -256,7 +231,7 @@ runService.Heartbeat:Connect(function()
                 while timeLeft > 0 and config.active do
                     btn.Text = "Cooldown: " .. string.format("%.1f", timeLeft) .. "s"
                     btn.TextColor3 = Color3.fromRGB(255, 165, 0)
-                    task.wait(0.1)  -- Smaller steps for smoother countdown
+                    task.wait(0.1)
                     timeLeft = timeLeft - 0.1
                 end
                 
@@ -286,7 +261,6 @@ runService.Heartbeat:Connect(function()
     end
 end)
 
-
 -- Clean up and reset AutoRotate if script loop ends or is toggled off
 btn.MouseButton1Click:Connect(function()
     if not config.active then
@@ -297,3 +271,11 @@ btn.MouseButton1Click:Connect(function()
         end
     end
 end)
+
+-- ============================================
+-- AUTO-EXECUTE ON REJOIN / TELEPORT (XENO)
+-- Replace the URL with your own raw script URL
+-- ============================================
+if queue_on_teleport ~= nil then
+    queue_on_teleport('loadstring(game:HttpGet("YOUR_RAW_SCRIPT_URL_HERE"))()')
+end
